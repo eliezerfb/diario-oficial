@@ -13,19 +13,28 @@ class RsPortoAlegreSpider(scrapy.Spider):
     start_urls = ['http://www2.portoalegre.rs.gov.br/dopa/']
 
     def parse(self, response):
+        """
+        @url http://www2.portoalegre.rs.gov.br/dopa/
+        @returns requests 48
+        """
         selector = (
             '//ul[contains(@id, "menucss")]'
             '/descendant::*[contains(text(), "Diário Oficial {}")]'
             '/parent::*/descendant::li/a'
         )
-        next_year = dt.date.today().year + 1
-        for year in range(2015, next_year):
+        current_year = dt.date.today().year
+        for year in range(current_year, 2014, -1):
             urls = response.xpath(selector.format(year) + '/attribute::href').extract()
             urls = [response.urljoin(url) for url in urls]
             for url in urls:
                 yield scrapy.Request(url, self.parse_month_page)
 
     def parse_month_page(self, response):
+        """
+        @url http://www2.portoalegre.rs.gov.br/dopa/default.php?p_secao=1431
+        @returns items 58 58
+        @scrapes date file_urls is_extra_edition municipality_id power scraped_at
+        """
         links = response.css('#conteudo a')
         items = []
         for link in links:
@@ -44,8 +53,8 @@ class RsPortoAlegreSpider(scrapy.Spider):
                     file_urls=[url],
                     is_extra_edition=is_extra_edition,
                     municipality_id=self.MUNICIPALITY_ID,
-                    scraped_at=dt.datetime.utcnow(),
                     power=power,
+                    scraped_at=dt.datetime.utcnow(),
                 )
             )
         return items
